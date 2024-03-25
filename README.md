@@ -15,9 +15,9 @@ Below is the basic process of preparing a model to use in Fulcrum:
 
 ## Example Models
 
-* [Utility Poles](https://drive.google.com/file/d/1sISnmO4TRAqm4DBgLtKeaKiFcB2a75Kx/view?usp=sharing) [labels](https://drive.google.com/file/d/1ADzWi5QLJLJbtrIyhCnr81CziNskfQW1/view?usp=drive_link)
-* [YOLOv5 Object Detection](https://drive.google.com/file/d/1VZ7OJrRIivsFGYQaPBgb6O10qubKg3E2/view?usp=drive_link) [labels](https://drive.google.com/file/d/1WfA-O2RTjogKZqi9WKwj1zvIkGY6o9ko/view?usp=drive_link)
-* [YOLOv5 Classification](https://drive.google.com/file/d/1UO_rDDowGj5BnFqKooTkE1_Su5WGhilF/view?usp=drive_link) [labels](https://drive.google.com/file/d/1OIDh6fX702tzHHf3mIb62nUnx5ZHfLDr/view?usp=sharing)
+* [Utility Poles](https://drive.google.com/file/d/1sISnmO4TRAqm4DBgLtKeaKiFcB2a75Kx/view?usp=sharing) / [labels](https://drive.google.com/file/d/1ADzWi5QLJLJbtrIyhCnr81CziNskfQW1/view?usp=drive_link)
+* [YOLOv5 Object Detection](https://drive.google.com/file/d/1VZ7OJrRIivsFGYQaPBgb6O10qubKg3E2/view?usp=drive_link) / [labels](https://drive.google.com/file/d/1WfA-O2RTjogKZqi9WKwj1zvIkGY6o9ko/view?usp=drive_link)
+* [YOLOv5 Classification](https://drive.google.com/file/d/1UO_rDDowGj5BnFqKooTkE1_Su5WGhilF/view?usp=drive_link) / [labels](https://drive.google.com/file/d/1OIDh6fX702tzHHf3mIb62nUnx5ZHfLDr/view?usp=sharing)
 
 ## Model Outputs
 
@@ -30,3 +30,38 @@ In this repo there is an `ai.js` file which can be added as a Reference File and
 ## Training a custom model
 
 * [Notebook for training a YOLOv5 object detector](https://colab.research.google.com/drive/1DlDVnYTftdAZ83SkUXTEXAO4utp2h0Eu?usp=sharing)
+
+## Data Events Usage
+
+```js
+ON('add-photo', 'photos', (event) => {
+  INFERENCE({
+    photo_id: event.value.id,
+    model: 'yolov5m-cls.ort',
+    size: 224,
+    format: 'chw',
+    type: 'float',
+    mean: [0.485, 0.456, 0.406],
+    std: [0.229, 0.224, 0.225]
+  }, (error, { output }) => {
+    if (error) {
+      ALERT(error.message);
+      return;
+    }
+
+    const results = Object.values(outputs)[0].value.map((score, index) => {
+      return {
+        index,
+        score,
+        label: IMAGENET[index]
+      };
+    });
+
+    const sorted = results.sort((a, b) => b.score - a.score);
+
+    const topK = top != null ? sorted.slice(0, top) : sorted;
+
+    SETVALUE('detections', JSON.stringify(topK));
+  });
+});
+```
