@@ -1,3 +1,37 @@
+function setRawValue(dataName, value) {
+  CONFIG().results.push({
+    type: 'set-value',
+    key: FIELD(dataName).key,
+    value: JSON.stringify(value)
+  });
+}
+
+function setCaption(dataName, id, caption) {
+  if (FIELDTYPE(dataName) !== 'PhotoField') {
+    return;
+  }
+
+  const photos = VALUE(dataName) ?? [];
+
+  const photo = photos.find(item => item.photo_id === id);
+
+  if (photo) {
+    photo.caption = caption;
+  }
+
+  setRawValue(dataName, photos);
+}
+
+function setupPhotoFieldTextRecognitionCaptions(dataName) {
+  ON('add-photo', dataName, (event) => {
+    RECOGNIZETEXT({ photo_id: event.value.id }, (error, result) => {
+      if (result) {
+        setCaption(dataName, event.value.id, result.text);
+      }
+    });
+  });
+}
+
 function runInference(
   {
     photo_id,
@@ -222,6 +256,9 @@ function chatGPT({ prompt, apiKey, model, temperature }, callback) {
 }
 
 module.exports = {
+  setCaption,
+  setRawValue,
+  setupPhotoFieldTextRecognitionCaptions,
   runInference,
   YOLOv5,
   chatGPT
