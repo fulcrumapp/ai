@@ -29,6 +29,29 @@ In this repo there is an `ai.js` file which can be added as a Reference File and
 
 ## Training a custom model
 
+### Setup python environment
+
+```sh
+python3 -m venv fulcrum-ai
+source fulcrum-ai/bin/activate
+pip install -r requirements.txt
+```
+
+### Train an image classification model
+
+```sh
+yolo train imgsz=640 epochs=300 batch=4 data=/path/to/photos model=yolov8s-cls.pt
+```
+
+### Export the model to ONNX
+
+```sh
+yolo export imgsz=640 model=runs/classify/train6/weights/best.pt format=onnx
+python -m onnxruntime.tools.convert_onnx_models_to_ort runs/classify/train6/weights/best.onnx
+
+# .ort model now at runs/classify/train6/weights/best.ort
+```
+
 * [Notebook for training a YOLOv5 object detector](https://colab.research.google.com/drive/1DlDVnYTftdAZ83SkUXTEXAO4utp2h0Eu?usp=sharing)
 
 ## Data Events Usage

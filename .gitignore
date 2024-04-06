@@ -1,0 +1,4 @@
+fulcrum-ai/
+runs/
+*.pt
+sample-data/

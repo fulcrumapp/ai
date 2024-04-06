@@ -76,7 +76,7 @@ function runInference(
 
 const YOLOv5 = {};
 
-YOLOv5.runClassification = function(
+YOLOv5.classify = function(
   {
     photo_id,
     form_id,
@@ -109,18 +109,18 @@ YOLOv5.runClassification = function(
       return;
     }
 
-    const processed = YOLOv5.processClassificationOutput({
+    const predictions = YOLOv5.processClassificationOutput({
       values: Object.values(results.outputs)[0].value,
       labels,
       threshold,
       top
     });
 
-    callback(null, processed);
+    callback(null, { predictions, raw: results });
   });
 }
 
-YOLOv5.processObjectDetectionOutput = function({
+YOLOv5.processDetectionOutput = function({
   detectionBoxes,
   detectionClasses,
   detectionScores,
@@ -192,7 +192,7 @@ YOLOv5.processClassificationOutput = function({
   return topK.filter(result => result.score > (threshold ?? 0));
 }
 
-YOLOv5.runObjectDetection = function(
+YOLOv5.detect = function(
   {
     photo_id,
     form_id,
@@ -220,7 +220,7 @@ YOLOv5.runObjectDetection = function(
       return;
     }
 
-    const detections = YOLOv5.processObjectDetectionOutput({
+    const predictions = YOLOv5.processDetectionOutput({
       detectionBoxes: outputs.output_0.value,
       detectionScores: outputs.output_1.value,
       detectionClasses: outputs.output_2.value,
@@ -229,9 +229,14 @@ YOLOv5.runObjectDetection = function(
       threshold: threshold ?? 0.3
     });
 
-    callback(null, detections);
+    callback(null, { predictions, raw: outputs });
   });
 }
+
+const YOLOv8 = {};
+
+YOLOv8.classify = YOLOv5.classify;
+YOLOv8.processClassificationOutput = YOLOv5.processClassificationOutput;
 
 function chatGPT({ prompt, apiKey, model, temperature }, callback) {
   const options = {
@@ -255,11 +260,49 @@ function chatGPT({ prompt, apiKey, model, temperature }, callback) {
   });
 }
 
+function computeIoU(boxA, boxB) {
+  const xA = Math.max(boxA.x1, boxB.x1);
+  const yA = Math.max(boxA.y1, boxB.y1);
+  const xB = Math.min(boxA.x2, boxB.x2);
+  const yB = Math.min(boxA.y2, boxB.y2);
+
+  const interArea = Math.max(0, xB - xA + 1) * Math.max(0, yB - yA + 1);
+
+  const boxAArea = (boxA.x2 - boxA.x1 + 1) * (boxA.y2 - boxA.y1 + 1);
+  const boxBArea = (boxB.x2 - boxB.x1 + 1) * (boxB.y2 - boxB.y1 + 1);
+
+  const iou = interArea / (boxAArea + boxBArea - interArea);
+
+  return iou;
+}
+
+function nonMaximumSuppression(boxes, scores, iouThreshold) {
+  const nmsBoxes = [];
+  const boxesWithScores = boxes.map((box, index) => ({...box, score: scores[index]}));
+  boxesWithScores.sort((a, b) => b.score - a.score);
+
+  while (boxesWithScores.length > 0) {
+    const [currentBox] = boxesWithScores.splice(0, 1);
+    nmsBoxes.push(currentBox);
+
+    for (let i = boxesWithScores.length - 1; i >= 0; i--) {
+      const iou = computeIoU(currentBox, boxesWithScores[i]);
+      if (iou > iouThreshold) {
+        boxesWithScores.splice(i, 1);
+      }
+    }
+  }
+
+  return nmsBoxes;
+}
+
 module.exports = {
+  nonMaximumSuppression,
   setCaption,
   setRawValue,
   setupPhotoFieldTextRecognitionCaptions,
   runInference,
   YOLOv5,
+  YOLOv8,
   chatGPT
 };
