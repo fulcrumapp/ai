@@ -25,7 +25,7 @@ Processing model output is the most complex part of integrating a custom model. 
 
 ## Helpers
 
-In this repo there is an `ai.js` file which can be added as a Reference File and loaded dynamically to access some helper functions. This will help during rapid prototyping to share some code while models are developers and we learn how to generalize and simplify model input handling and output post-processing.
+In this repo there is an `ai.js` file which can be added as a Reference File and loaded dynamically to access some helper functions. This will help during rapid prototyping to share some code while models are developing and we learn how to generalize and simplify model input handling and output post-processing.
 
 ## Training a custom model
 
