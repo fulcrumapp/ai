@@ -52,6 +52,30 @@ python -m onnxruntime.tools.convert_onnx_models_to_ort runs/classify/train6/weig
 # .ort model now at runs/classify/train6/weights/best.ort
 ```
 
+## Training a custom object detection model
+
+### Setup
+```sh
+git clone https://github.com/ultralytics/yolov5 yolo-repo
+cd yolo-repo && git pull && cd -
+pip install -r yolo-repo/requirements.txt
+```
+
+### Train the model
+```sh
+python yolo-repo/train.py --imgsz 640 --epochs 300 --batch-size 2 --data corrosion/data.yaml --weights yolov5m.pt
+```
+
+### Export the model
+
+To export an object detection model, we want the Non Maximum Suppression (NMS) operation baked into the end of the model. This allows us to use the model output as-is without need NMS algorithms implemented in the Data Events post processing. The basic concept is the raw YOLO object detection models output many slightly overlapping bounding boxes for the "same object" and you need to do post processing to find the "best" bounding boxes based on the scores so you don't end up with many boxes for the same objects.
+
+```
+python yolo-repo/export.py --imgsz 640 --weights yolo-repo/runs/train/exp6/weights/best.pt --include saved_model --dynamic --nms
+python -m tf2onnx.convert --opset 18 --saved-model yolo-repo/runs/train/exp6/weights/best_saved_model --output corrosion.onnx --tag serve
+python -m onnxruntime.tools.convert_onnx_models_to_ort corrosion.onnx
+```
+
 * [Notebook for training a YOLOv5 object detector](https://colab.research.google.com/drive/1DlDVnYTftdAZ83SkUXTEXAO4utp2h0Eu?usp=sharing)
 
 ## Data Events Usage
@@ -88,3 +112,46 @@ ON('add-photo', 'photos', (event) => {
   });
 });
 ```
+
+## New Functions
+
+```js
+// validations.js added as reference file to another form
+// function validateName(name) {
+//   return name && name.length > 5;
+// }
+// module.exports = {
+//   validateName
+// };
+
+// load validations.js from another form (also accepts form_id) and assign it a global variable `validations`
+LOADFILE({ name: 'validations.js', form_name: 'Some Other Form Name', variable: 'validations' });
+
+ON('validate-record', () => {
+  if (!validations.validateName($name)) {
+    INVALID('Name is not valid');
+  }
+});
+
+// load records by their ids
+LOADRECORDS({ ids: $record_link_field }, (error, records) => {
+  ALERT(`Loaded ${records.length} records`);
+});
+
+// load all the records in a form (also accepts form_id) and filter them in JS, the count and size of records impact performance
+LOADRECORDS({ form_name: 'Some Reference Form' }, (error, records) => {
+  ALERT(`Loaded ${records.length} records`);
+});
+
+// load another form schema, also accepts form_id
+LOADFORM({ form_name: 'Some Reference Form' }, (error, form) => {
+  ALERT(`Loaded ${form.name} schema`);
+});
+```
+
+### Datasets
+
+https://github.com/InsulatorData/InsulatorDataSet
+https://github.com/phd-benel/MPID
+https://github.com/andreluizbvs/InsPLAD
+https://github.com/andreluizbvs/PLAD
