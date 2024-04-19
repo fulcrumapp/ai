@@ -113,6 +113,16 @@ ON('add-photo', 'photos', (event) => {
 });
 ```
 
+## Text Recognition Example
+
+```js
+ON('add-photo', 'photos', (event) => {
+  RECOGNIZETEXT({ photo_id: event.value.id }, (error, result) => {
+    SETVALUE('image_text', result.text);
+  });
+});
+```
+
 ## New Functions
 
 ```js
