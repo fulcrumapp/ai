@@ -81,16 +81,27 @@ python -m onnxruntime.tools.convert_onnx_models_to_ort corrosion.onnx
 ## Data Events Usage
 
 ```js
+const top = 2
+const model = 'your-model.ort'
+const labels = 'your-model-labels.txt'
+
+ON('load-record', () => {
+  LOADFILE({ name: labels, form_name: 'your form name' }, (err, data) => {
+    LABELS = data.trim().split('\n');
+  });
+});
+
 ON('add-photo', 'photos', (event) => {
   INFERENCE({
     photo_id: event.value.id,
-    model: 'yolov5m-cls.ort',
-    size: 224,
+    model,
+    size: 640,
     format: 'chw',
+//  format: 'hwc', sometimes there are some incompatibilities with the format, so you can use one or the other depending on how you exported the model
     type: 'float',
     mean: [0.485, 0.456, 0.406],
     std: [0.229, 0.224, 0.225]
-  }, (error, { output }) => {
+  }, (error, { outputs }) => {
     if (error) {
       ALERT(error.message);
       return;
@@ -100,7 +111,7 @@ ON('add-photo', 'photos', (event) => {
       return {
         index,
         score,
-        label: IMAGENET[index]
+        label: LABELS[index]
       };
     });
 
@@ -108,7 +119,7 @@ ON('add-photo', 'photos', (event) => {
 
     const topK = top != null ? sorted.slice(0, top) : sorted;
 
-    SETVALUE('detections', JSON.stringify(topK));
+    SETVALUE('my_detections', JSON.stringify(topK));
   });
 });
 ```
