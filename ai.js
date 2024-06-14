@@ -22,11 +22,13 @@ function setCaption(dataName, id, caption) {
   setRawValue(dataName, photos);
 }
 
-function setupPhotoFieldTextRecognitionCaptions(dataName) {
+function setupPhotoFieldTextRecognitionCaptions(dataName, process) {
   ON('add-photo', dataName, (event) => {
     RECOGNIZETEXT({ photo_id: event.value.id }, (error, result) => {
       if (result) {
-        setCaption(dataName, event.value.id, result.text);
+        const text = process ? process(result.text) : result.text;
+
+        setCaption(dataName, event.value.id, text);
       }
     });
   });
@@ -238,8 +240,8 @@ const YOLOv8 = {};
 YOLOv8.classify = YOLOv5.classify;
 YOLOv8.processClassificationOutput = YOLOv5.processClassificationOutput;
 
-function chatGPT({ prompt, apiKey, model, temperature }, callback) {
-  const options = {
+function chatGPT({ prompt, apiKey, model, temperature, ...options }, callback) {
+  const requestOptions = {
     method: 'POST',
     url: 'https://api.openai.com/v1/chat/completions',
     headers: {
@@ -247,16 +249,21 @@ function chatGPT({ prompt, apiKey, model, temperature }, callback) {
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-     "model": model ?? 'gpt-3.5-turbo',
-     "messages": [{ role: "user", content: prompt }],
-     "temperature": temperature ?? 0.7
+      model: model ?? 'gpt-4o',
+      messages: [{ role: "user", content: prompt }],
+      temperature: temperature ?? 0.0,
+      ...options
     })
   };
 
-  REQUEST(options, (req, res, body) => {
-    const json = JSON.parse(body);
+  REQUEST(requestOptions, (err, res, body) => {
+    if (err) {
+      callback(err);
+    } else {
+      const json = JSON.parse(body);
 
-    callback(json.choices && json.choices.length ? json.choices[0].message.content : null, json);
+      callback(null, json.choices && json.choices.length ? json.choices[0].message.content : null, json);
+    }
   });
 }
 
