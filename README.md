@@ -155,17 +155,17 @@ ON('validate-record', () => {
 });
 
 // load records by their ids
-LOADRECORDS({ ids: $record_link_field }, (error, records) => {
+LOADRECORDS({ ids: $record_link_field }, (error, { records }) => {
   ALERT(`Loaded ${records.length} records`);
 });
 
 // load all the records in a form (also accepts form_id) and filter them in JS, the count and size of records impact performance
-LOADRECORDS({ form_name: 'Some Reference Form' }, (error, records) => {
+LOADRECORDS({ form_name: 'Some Reference Form' }, (error, { records }) => {
   ALERT(`Loaded ${records.length} records`);
 });
 
 // load another form schema, also accepts form_id
-LOADFORM({ form_name: 'Some Reference Form' }, (error, form) => {
+LOADFORM({ form_name: 'Some Reference Form' }, (error, { form }) => {
   ALERT(`Loaded ${form.name} schema`);
 });
 ```
